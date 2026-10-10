@@ -1,6 +1,6 @@
 // Central API service for all HTTP calls with JWT Authorization
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 
 export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem('token');
@@ -17,7 +17,8 @@ export async function apiRequest(endpoint, options = {}) {
   };
 
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const response = await fetch(`${API_BASE_URL}${cleanEndpoint}`, config);
     
     // Check if token expired / unauthorized
     if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/register')) {
