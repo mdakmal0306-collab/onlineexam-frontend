@@ -27,16 +27,30 @@ export async function apiRequest(endpoint, options = {}) {
       window.dispatchEvent(new Event('auth:unauthorized'));
     }
 
-    const data = await response.json();
+    // Safely parse JSON — avoid crash if body is empty or HTML (e.g. Render cold-start)
+    let data = null;
+    const contentType = response.headers.get('Content-Type') || '';
+    if (contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      if (text) {
+        try { data = JSON.parse(text); } catch {
+          // Non-JSON body (HTML error page, etc.)
+          throw new Error(`Server returned non-JSON response (status ${response.status}). The backend may be starting up — please try again in a moment.`);
+        }
+      }
+    }
 
     if (!response.ok) {
-      throw new Error(data.message || `Request failed with status ${response.status}`);
+      throw new Error((data && data.message) || `Request failed with status ${response.status}`);
     }
 
     return data;
   } catch (err) {
     throw err;
   }
+
 }
 
 export const api = {
